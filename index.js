@@ -13,10 +13,6 @@ app.use('/api/bugs', bugRoutes)
 
 app.get('/', (req, res) => {
   res.send('🚀 Bug Dashboard Backend is Running!')
-app.get('/api', (req, res) => {
-  res.send("🚀 Bug Dashboard API is live!");
-});
-
 })
 
 mongoose.connect(process.env.MONGO_URI, {
@@ -32,4 +28,5 @@ const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`)
 })
+
 
