@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const bugSchema = new mongoose.Schema({
-  ScenarioID: String,
+  ScenarioType: String,
   TestCaseID: String,
   Description: String,
   Status: String,
@@ -16,3 +16,4 @@ const bugSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 module.exports = mongoose.model('Bug', bugSchema)
+
