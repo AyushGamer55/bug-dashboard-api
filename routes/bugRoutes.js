@@ -2,51 +2,47 @@ const express = require('express');
 const router = express.Router();
 const Bug = require('../models/Bug');
 
-// -------------------- CRUD --------------------
-
-// GET all
+// Get all bugs
 router.get('/', async (req, res) => {
   try {
     const bugs = await Bug.find().sort({ ScenarioID: 1 });
     res.json(bugs);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch bugs', error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
-// CREATE
+// Create bug
 router.post('/', async (req, res) => {
   try {
-    const bug = await Bug.create(req.body);
-    res.status(201).json(bug);
+    const newBug = await Bug.create(req.body);
+    res.status(201).json(newBug);
   } catch (err) {
-    res.status(400).json({ message: 'Failed to create bug', error: err.message });
+    res.status(400).json({ message: err.message });
   }
 });
 
-// UPDATE (PATCH)
+// Update bug
 router.patch('/:id', async (req, res) => {
   try {
-    const updated = await Bug.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    const updated = await Bug.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    });
     if (!updated) return res.status(404).json({ message: 'Bug not found' });
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ message: 'Failed to update bug', error: err.message });
+    res.status(400).json({ message: err.message });
   }
 });
 
-// -------------------- SUMMARY --------------------
+// Summary route
 router.get('/summary', async (req, res) => {
   try {
     const total = await Bug.countDocuments();
-
     if (total === 0) {
       return res.json({
-        total,
+        total: 0,
         byStatus: {},
         byPriority: {},
         bySeverity: {},
@@ -54,73 +50,66 @@ router.get('/summary', async (req, res) => {
       });
     }
 
-    const aggCount = (field) =>
-      Bug.aggregate([
-        {
-          $group: {
-            _id: { $ifNull: [`$${field}`, 'Unknown'] },
-            count: { $sum: 1 }
-          }
-        },
-        { $sort: { count: -1 } },
-        {
-          $project: {
-            _id: 0,
-            k: '$_id',
-            v: '$count'
-          }
-        }
+    const aggregateCount = async (field) => {
+      const results = await Bug.aggregate([
+        { $group: { _id: $${field}, count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
       ]);
+      return results.reduce((acc, cur) => {
+        acc[cur._id || 'Unknown'] = cur.count;
+        return acc;
+      }, {});
+    };
 
-    const [statusArr, priorityArr, severityArr] = await Promise.all([
-      aggCount('Status'),
-      aggCount('Priority'),
-      aggCount('Severity')
+    const [byStatus, byPriority, bySeverity] = await Promise.all([
+      aggregateCount('Status'),
+      aggregateCount('Priority'),
+      aggregateCount('Severity')
     ]);
 
-    // Area categories from Scenario Description
+    // Area detection from description text
+    const areaCategories = ['Livestream', 'Timeline', 'Teams', 'Apps', 'URL', 'Screenshots'];
+    const byArea = Object.fromEntries(areaCategories.map(area => [area, 0]));
+
     const bugs = await Bug.find({}, { Description: 1 });
-    const areas = { Livestream: 0, Timeline: 0, Teams: 0, Apps: 0, URL: 0, Screenshots: 0 };
-    bugs.forEach(bug => {
+    bugs.forEach((bug) => {
       const desc = (bug.Description || '').toLowerCase();
-      Object.keys(areas).forEach(area => {
+      areaCategories.forEach((area) => {
         if (desc.includes(area.toLowerCase())) {
-          areas[area]++;
+          byArea[area]++;
         }
       });
     });
 
-    const toObj = (arr) => Object.fromEntries(arr.map(({ k, v }) => [k, v]));
-
     res.json({
       total,
-      byStatus: toObj(statusArr),
-      byPriority: toObj(priorityArr),
-      bySeverity: toObj(severityArr),
-      byArea: areas
+      byStatus,
+      byPriority,
+      bySeverity,
+      byArea
     });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to build summary', error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
-// DELETE all
+// Delete all bugs
 router.delete('/delete-all', async (req, res) => {
   try {
     await Bug.deleteMany({});
-    res.json({ ok: true });
+    res.json({ message: 'All bugs deleted' });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to delete all', error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
-// DELETE one
+// Delete single bug
 router.delete('/:id', async (req, res) => {
   try {
     await Bug.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
+    res.json({ message: 'Bug deleted' });
   } catch (err) {
-    res.status(400).json({ message: 'Failed to delete bug', error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
