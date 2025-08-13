@@ -14,6 +14,31 @@ router.get('/', async (req, res) => {
   }
 });
 
+// CREATE
+router.post('/', async (req, res) => {
+  try {
+    const bug = await Bug.create(req.body);
+    res.status(201).json(bug);
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to create bug', error: err.message });
+  }
+});
+
+// UPDATE (PATCH)
+router.patch('/:id', async (req, res) => {
+  try {
+    const updated = await Bug.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ message: 'Bug not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to update bug', error: err.message });
+  }
+});
+
 // -------------------- SUMMARY --------------------
 router.get('/summary', async (req, res) => {
   try {
@@ -53,79 +78,46 @@ router.get('/summary', async (req, res) => {
       aggCount('Severity')
     ]);
 
-    const toObj = (arr) =>
-      Object.fromEntries(arr.map(({ k, v }) => [k, v]));
+    // Area categories from Scenario Description
+    const bugs = await Bug.find({}, { Description: 1 });
+    const areas = { Livestream: 0, Timeline: 0, Teams: 0, Apps: 0, URL: 0, Screenshots: 0 };
+    bugs.forEach(bug => {
+      const desc = (bug.Description || '').toLowerCase();
+      Object.keys(areas).forEach(area => {
+        if (desc.includes(area.toLowerCase())) {
+          areas[area]++;
+        }
+      });
+    });
 
-    // Area categories from keywords
-    const areaCategories = {
-      Livestream: /\blivestream\b/i,
-      Timeline: /\btimeline\b/i,
-      Teams: /\bteams\b/i,
-      "Apps/URL": /\b(apps?|url)\b/i,
-      Screenshots: /\bscreenshot(s)?\b/i
-    };
-
-    const allBugs = await Bug.find();
-    const areaCounts = {};
-    for (const [area, regex] of Object.entries(areaCategories)) {
-      areaCounts[area] = allBugs.filter(bug =>
-        regex.test(bug.ScenarioDescription || bug.Description || "")
-      ).length;
-    }
+    const toObj = (arr) => Object.fromEntries(arr.map(({ k, v }) => [k, v]));
 
     res.json({
       total,
       byStatus: toObj(statusArr),
       byPriority: toObj(priorityArr),
       bySeverity: toObj(severityArr),
-      byArea: areaCounts
+      byArea: areas
     });
-
   } catch (err) {
     res.status(500).json({ message: 'Failed to build summary', error: err.message });
   }
 });
 
-// -------------------- DELETE ALL --------------------
+// DELETE all
 router.delete('/delete-all', async (req, res) => {
   try {
-    const result = await Bug.deleteMany({});
-    res.json({ ok: true, deletedCount: result.deletedCount });
+    await Bug.deleteMany({});
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete all', error: err.message });
   }
 });
 
-// -------------------- CREATE --------------------
-router.post('/', async (req, res) => {
-  try {
-    const bug = await Bug.create(req.body);
-    res.status(201).json(bug);
-  } catch (err) {
-    res.status(400).json({ message: 'Failed to create bug', error: err.message });
-  }
-});
-
-// -------------------- UPDATE --------------------
-router.patch('/:id', async (req, res) => {
-  try {
-    const updated = await Bug.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
-    if (!updated) return res.status(404).json({ message: 'Bug not found' });
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ message: 'Failed to update bug', error: err.message });
-  }
-});
-
-// -------------------- DELETE ONE --------------------
+// DELETE one
 router.delete('/:id', async (req, res) => {
   try {
-    const deleted = await Bug.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Bug not found' });
+    await Bug.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ message: 'Failed to delete bug', error: err.message });
