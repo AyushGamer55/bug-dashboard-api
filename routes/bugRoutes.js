@@ -15,58 +15,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// CREATE
-router.post('/', async (req, res) => {
-  try {
-    const bug = await Bug.create(req.body);
-    res.status(201).json(bug);
-  } catch (err) {
-    res.status(400).json({ message: 'Failed to create bug', error: err.message });
-  }
-});
-
-// UPDATE (PATCH)
-router.patch('/:id', async (req, res) => {
-  try {
-    const updated = await Bug.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
-    if (!updated) return res.status(404).json({ message: 'Bug not found' });
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ message: 'Failed to update bug', error: err.message });
-  }
-});
-
-// DELETE one
-router.delete('/:id', async (req, res) => {
-  try {
-    await Bug.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(400).json({ message: 'Failed to delete bug', error: err.message });
-  }
-});
-
-// DELETE all
-router.delete('/delete-all', async (req, res) => {
-  try {
-    await Bug.deleteMany({});
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to delete all', error: err.message });
-  }
-});
-
 // -------------------- SUMMARY --------------------
-// GET /api/bugs/summary
+// GET /bugs/summary
 router.get('/summary', async (req, res) => {
   try {
     const total = await Bug.countDocuments();
 
-    // empty DB? return zeros
     if (total === 0) {
       return res.json({
         total,
@@ -111,6 +65,51 @@ router.get('/summary', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Failed to build summary', error: err.message });
+  }
+});
+
+// CREATE
+router.post('/', async (req, res) => {
+  try {
+    const bug = await Bug.create(req.body);
+    res.status(201).json(bug);
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to create bug', error: err.message });
+  }
+});
+
+// UPDATE (PATCH)
+router.patch('/:id', async (req, res) => {
+  try {
+    const updated = await Bug.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ message: 'Bug not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to update bug', error: err.message });
+  }
+});
+
+// DELETE one
+router.delete('/:id', async (req, res) => {
+  try {
+    await Bug.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to delete bug', error: err.message });
+  }
+});
+
+// DELETE all
+router.delete('/delete-all', async (req, res) => {
+  try {
+    await Bug.deleteMany({});
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete all', error: err.message });
   }
 });
 
