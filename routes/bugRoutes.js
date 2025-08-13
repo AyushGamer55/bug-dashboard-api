@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 });
 
 // -------------------- SUMMARY --------------------
-// GET /bugs/summary
+// GET /api/bugs/summary
 router.get('/summary', async (req, res) => {
   try {
     const total = await Bug.countDocuments();
@@ -26,7 +26,8 @@ router.get('/summary', async (req, res) => {
         total,
         byStatus: {},
         byPriority: {},
-        bySeverity: {}
+        bySeverity: {},
+        byArea: {}
       });
     }
 
@@ -57,12 +58,31 @@ router.get('/summary', async (req, res) => {
     const toObj = (arr) =>
       Object.fromEntries(arr.map(({ k, v }) => [k, v]));
 
+    // Area categories from keywords
+    const areaCategories = {
+      Livestream: /\blivestream\b/i,
+      Timeline: /\btimeline\b/i,
+      Teams: /\bteams\b/i,
+      "Apps/URL": /\b(apps?|url)\b/i,
+      Screenshots: /\bscreenshot(s)?\b/i
+    };
+
+    const allBugs = await Bug.find();
+    const areaCounts = {};
+    for (const [area, regex] of Object.entries(areaCategories)) {
+      areaCounts[area] = allBugs.filter(bug =>
+        regex.test(bug.ScenarioDescription || bug.Description || "")
+      ).length;
+    }
+
     res.json({
       total,
       byStatus: toObj(statusArr),
       byPriority: toObj(priorityArr),
-      bySeverity: toObj(severityArr)
+      bySeverity: toObj(severityArr),
+      byArea: areaCounts
     });
+
   } catch (err) {
     res.status(500).json({ message: 'Failed to build summary', error: err.message });
   }
@@ -114,3 +134,4 @@ router.delete('/delete-all', async (req, res) => {
 });
 
 module.exports = router;
+
