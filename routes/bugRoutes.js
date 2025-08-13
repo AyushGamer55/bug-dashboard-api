@@ -1,4 +1,3 @@
-// backend/routes/bugRoutes.js
 const express = require('express');
 const router = express.Router();
 const Bug = require('../models/Bug');
@@ -16,7 +15,6 @@ router.get('/', async (req, res) => {
 });
 
 // -------------------- SUMMARY --------------------
-// GET /api/bugs/summary
 router.get('/summary', async (req, res) => {
   try {
     const total = await Bug.countDocuments();
@@ -88,7 +86,17 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-// CREATE
+// -------------------- DELETE ALL --------------------
+router.delete('/delete-all', async (req, res) => {
+  try {
+    const result = await Bug.deleteMany({});
+    res.json({ ok: true, deletedCount: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete all', error: err.message });
+  }
+});
+
+// -------------------- CREATE --------------------
 router.post('/', async (req, res) => {
   try {
     const bug = await Bug.create(req.body);
@@ -98,7 +106,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// UPDATE (PATCH)
+// -------------------- UPDATE --------------------
 router.patch('/:id', async (req, res) => {
   try {
     const updated = await Bug.findByIdAndUpdate(
@@ -113,20 +121,11 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// DELETE all
-router.delete('/delete-all', async (req, res) => {
-  try {
-    await Bug.deleteMany({});
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to delete all', error: err.message });
-  }
-});
-
-// DELETE one
+// -------------------- DELETE ONE --------------------
 router.delete('/:id', async (req, res) => {
   try {
-    await Bug.findByIdAndDelete(req.params.id);
+    const deleted = await Bug.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Bug not found' });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ message: 'Failed to delete bug', error: err.message });
