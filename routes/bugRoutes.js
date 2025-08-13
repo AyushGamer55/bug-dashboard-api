@@ -113,16 +113,6 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// DELETE one
-router.delete('/:id', async (req, res) => {
-  try {
-    await Bug.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(400).json({ message: 'Failed to delete bug', error: err.message });
-  }
-});
-
 // DELETE all
 router.delete('/delete-all', async (req, res) => {
   try {
@@ -133,5 +123,14 @@ router.delete('/delete-all', async (req, res) => {
   }
 });
 
-module.exports = router;
+// DELETE one
+router.delete('/:id', async (req, res) => {
+  try {
+    await Bug.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to delete bug', error: err.message });
+  }
+});
 
+module.exports = router;
