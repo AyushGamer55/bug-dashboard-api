@@ -1,56 +1,117 @@
-const express = require('express')
-const router = express.Router()
-const Bug = require('../models/Bug')
+// backend/routes/bugRoutes.js
+const express = require('express');
+const router = express.Router();
+const Bug = require('../models/Bug');
 
-// GET all bugs
+// -------------------- CRUD --------------------
+
+// GET all
 router.get('/', async (req, res) => {
-  const bugs = await Bug.find().sort({ createdAt: -1 })
-  res.json(bugs)
-})
+  try {
+    const bugs = await Bug.find().sort({ ScenarioID: 1 });
+    res.json(bugs);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch bugs', error: err.message });
+  }
+});
 
-// POST a new bug
+// CREATE
 router.post('/', async (req, res) => {
   try {
-    const bug = new Bug(req.body)
-    await bug.save()
-    res.status(201).json(bug)
-  } catch (error) {
-    res.status(400).json({ message: error.message })
-  }
-})
-
-// DELETE all bugs
-router.delete('/delete-all', async (req, res) => {
-  try {
-    await Bug.deleteMany({})
-    res.json({ message: "All bugs deleted successfully" })
+    const bug = await Bug.create(req.body);
+    res.status(201).json(bug);
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete all bugs" })
+    res.status(400).json({ message: 'Failed to create bug', error: err.message });
   }
-})
+});
 
-// DELETE one bug by ID
-router.delete('/:id', async (req, res) => {
-  try {
-    await Bug.findByIdAndDelete(req.params.id)
-    res.json({ message: "Bug deleted" })
-  } catch (err) {
-    res.status(500).json({ error: "Delete failed" })
-  }
-})
-
-// PATCH (Edit) a bug by ID
+// UPDATE (PATCH)
 router.patch('/:id', async (req, res) => {
   try {
-    const updatedBug = await Bug.findByIdAndUpdate(
+    const updated = await Bug.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
-      { new: true }
-    )
-    res.json(updatedBug)
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ message: 'Bug not found' });
+    res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: "Failed to update bug" })
+    res.status(400).json({ message: 'Failed to update bug', error: err.message });
   }
-})
+});
 
-module.exports = router
+// DELETE one
+router.delete('/:id', async (req, res) => {
+  try {
+    await Bug.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ message: 'Failed to delete bug', error: err.message });
+  }
+});
+
+// DELETE all
+router.delete('/delete-all', async (req, res) => {
+  try {
+    await Bug.deleteMany({});
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete all', error: err.message });
+  }
+});
+
+// -------------------- SUMMARY --------------------
+// GET /api/bugs/summary
+router.get('/summary', async (req, res) => {
+  try {
+    const total = await Bug.countDocuments();
+
+    // empty DB? return zeros
+    if (total === 0) {
+      return res.json({
+        total,
+        byStatus: {},
+        byPriority: {},
+        bySeverity: {}
+      });
+    }
+
+    const aggCount = (field) =>
+      Bug.aggregate([
+        {
+          $group: {
+            _id: { $ifNull: [`$${field}`, 'Unknown'] },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } },
+        {
+          $project: {
+            _id: 0,
+            k: '$_id',
+            v: '$count'
+          }
+        }
+      ]);
+
+    const [statusArr, priorityArr, severityArr] = await Promise.all([
+      aggCount('Status'),
+      aggCount('Priority'),
+      aggCount('Severity')
+    ]);
+
+    const toObj = (arr) =>
+      Object.fromEntries(arr.map(({ k, v }) => [k, v]));
+
+    res.json({
+      total,
+      byStatus: toObj(statusArr),
+      byPriority: toObj(priorityArr),
+      bySeverity: toObj(severityArr)
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to build summary', error: err.message });
+  }
+});
+
+module.exports = router;
