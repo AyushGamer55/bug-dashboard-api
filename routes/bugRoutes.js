@@ -52,7 +52,7 @@ router.get('/summary', async (req, res) => {
 
     const aggregateCount = async (field) => {
       const results = await Bug.aggregate([
-        { $group: { _id: $${field}, count: { $sum: 1 } } },
+        { $group: { _id: `$${field}`, count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ]);
       return results.reduce((acc, cur) => {
