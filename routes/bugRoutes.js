@@ -25,11 +25,11 @@ router.post('/', async (req, res) => {
   }
 });
 
-// DELETE all (keep this BEFORE '/:id' so it doesn't get treated as an id)
+// DELETE all 
 router.delete('/delete-all', async (req, res) => {
   try {
-    await Bug.deleteMany({});
-    res.json({ ok: true });
+    const result = await Bug.deleteMany({});
+    res.json({ ok: true, deletedCount: result.deletedCount });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete all', error: err.message });
   }
@@ -116,3 +116,4 @@ router.get('/summary', async (req, res) => {
 });
 
 module.exports = router;
+
