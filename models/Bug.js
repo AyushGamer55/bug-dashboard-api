@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 
 const bugSchema = new mongoose.Schema({
+  deviceId: { type: String, required: true },
   ScenarioID: String,
   TestCaseID: String,
   Description: String,
@@ -16,3 +17,4 @@ const bugSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 module.exports = mongoose.model('Bug', bugSchema)
+
