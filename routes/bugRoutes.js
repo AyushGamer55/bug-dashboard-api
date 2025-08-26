@@ -23,6 +23,16 @@ router.post('/', async (req, res) => {
     const { deviceId } = req.body;
     if (!deviceId) return res.status(400).json({ message: 'deviceId is required in body' });
 
+    // Normalize StepsToExecute
+    if (req.body.StepsToExecute) {
+      if (typeof req.body.StepsToExecute === 'string') {
+        req.body.StepsToExecute = req.body.StepsToExecute
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line);
+      }
+    }
+
     const bug = await Bug.create(req.body);
     res.status(201).json(bug);
   } catch (err) {
@@ -53,7 +63,26 @@ router.patch('/:id', async (req, res) => {
     if (!bug) return res.status(404).json({ message: 'Bug not found' });
     if (bug.deviceId !== deviceId) return res.status(403).json({ message: 'Forbidden: wrong deviceId' });
 
-    const updated = await Bug.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true, runValidators: true });
+    // Normalize StepsToExecute
+    if (req.body.StepsToExecute) {
+      if (typeof req.body.StepsToExecute === 'string') {
+        req.body.StepsToExecute = req.body.StepsToExecute
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line);
+      } else if (Array.isArray(req.body.StepsToExecute)) {
+        req.body.StepsToExecute = req.body.StepsToExecute
+          .map(line => (typeof line === 'string' ? line.trim() : line))
+          .filter(line => line);
+      }
+    }
+
+    const updated = await Bug.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+
     res.json(updated);
   } catch (err) {
     res.status(400).json({ message: 'Failed to update bug', error: err.message });
