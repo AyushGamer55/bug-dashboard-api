@@ -161,7 +161,7 @@ exports.getBugSummary = async (req, res) => {
       aggCount("Status"),
       aggCount("Priority"),
       aggCount("Severity"),
-      aggCount("TestCaseID"),
+      aggCount("Category"),
     ]);
 
     const toObj = (arr) => Object.fromEntries(arr.map(({ k, v }) => [k, v]));

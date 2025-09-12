@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const bugSchema = new mongoose.Schema(
   {
     deviceId: { type: String, required: true, index: true },
-    ScenarioID: { type: String, index: true }, 
-    TestCaseID: String,
+    ScenarioID: { type: String, index: true },
+    Category: String,
     Description: String,
     Status: String,
     Priority: String,
