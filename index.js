@@ -1,17 +1,35 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const mongoose = require('mongoose');
 const cloudinary = require('cloudinary').v2;
+const { logger } = require('./utils/logger');
 require('dotenv').config();
 
 const bugRoutes = require('./routes/bugRoutes');
 const authRoutes = require('./routes/authRoutes');
+const authMiddleware = require('./middleware/authMiddleware');
+
 
 const app = express();
 
-// ✅ Middleware
-app.use(cors());
-app.use(express.json());
+// ✅ Security & Core Middleware (minimal, non-breaking)
+const allowlist = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+app.use(
+  cors(allowlist.length ? { origin: allowlist, credentials: true } : undefined)
+);
+app.use(helmet());
+app.use(express.json({ limit: '1mb' }));
+
+
+
+// Basic rate limiting for API routes (conservative defaults)
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
+app.use('/api/', apiLimiter);
 
 // ✅ Configure Cloudinary
 cloudinary.config({
@@ -24,10 +42,10 @@ cloudinary.config({
 app.use('/api/bugs', bugRoutes);
 app.use('/api/auth', authRoutes);
 
-// ✅ Route to fetch images from Cloudinary
-app.get('/api/images', async (req, res) => {
+// ✅ Route to fetch images from Cloudinary (protected)
+app.get('/api/images', authMiddleware, async (req, res) => {
   try {
-    const folder = process.env.CLOUDINARY_FOLDER || 'Screenshots'; 
+    const folder = process.env.CLOUDINARY_FOLDER || 'Screenshots';
     const result = await cloudinary.search
       .expression(`folder:${folder}`)
       .sort_by('created_at', 'desc')
@@ -42,7 +60,7 @@ app.get('/api/images', async (req, res) => {
 
     res.json(images);
   } catch (error) {
-    console.error('Error fetching images:', error);
+    logger.error('Error fetching images:', error);
     res.status(500).json({ error: 'Failed to fetch images from Cloudinary' });
   }
 });
@@ -53,15 +71,21 @@ app.get('/', (req, res) => {
 });
 
 // ✅ MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ MongoDB connection failed:", err));
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => logger.info('✅ MongoDB connected'))
+  .catch(err => logger.error('❌ MongoDB connection failed:', err));
+
+// ✅ Centralized error handler (last middleware)
+// Keeps response shape consistent without changing controller logic
+app.use((err, req, res) => {
+  const status = err.status || 500;
+  const message = err.message || 'Server error';
+  res.status(status).json({ message });
+});
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  logger.info(`🚀 Server running at http://localhost:${PORT}`);
 });

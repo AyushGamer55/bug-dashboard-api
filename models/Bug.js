@@ -15,7 +15,11 @@ const bugSchema = new mongoose.Schema(
     ActualResult: String,
     Comments: String,
     SuggestionToFix: String,
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    }
   },
   { timestamps: true }
 );
