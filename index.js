@@ -11,8 +11,8 @@ const bugRoutes = require('./routes/bugRoutes');
 const authRoutes = require('./routes/authRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 
-
 const app = express();
+app.set('trust proxy', 1);
 
 // ✅ Security & Core Middleware (minimal, non-breaking)
 const allowlist = (process.env.CORS_ORIGINS || '')
