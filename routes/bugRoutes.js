@@ -5,6 +5,7 @@ const bugController = require('../controllers/bugControllers');
 const {
   validate,
   bugSchema,
+  bugUpdateSchema,
   querySchema
 } = require('../middleware/validation');
 
@@ -19,7 +20,7 @@ router.delete(
   validate(querySchema, 'query'),
   bugController.deleteAllBugs
 );
-router.patch('/:id', validate(bugSchema), bugController.updateBug);
+router.patch('/:id', validate(bugUpdateSchema), bugController.updateBug);
 router.delete('/:id', bugController.deleteBug);
 router.get(
   '/summary',

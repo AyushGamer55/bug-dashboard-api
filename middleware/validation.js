@@ -100,6 +100,24 @@ const bugSchema = Joi.object({
   SuggestionToFix: Joi.string().max(2000).allow('').optional()
 });
 
+// New: update schema for PATCH (all optional; require at least one field)
+const bugUpdateSchema = Joi.object({
+  deviceId: Joi.string().optional(),
+  ScenarioID: Joi.string().max(200).allow('').optional(),
+  Category: Joi.string().max(100).allow('').optional(),
+  Description: Joi.string().max(2000).allow('').optional(),
+  Status: Joi.string().max(50).allow('').optional(),
+  Priority: Joi.string().max(50).allow('').optional(),
+  Severity: Joi.string().max(50).allow('').optional(),
+  PreCondition: Joi.string().max(1000).allow('').optional(),
+  StepsToExecute: Joi.alternatives()
+    .try(Joi.array().items(Joi.string().max(500)), Joi.string().max(5000))
+    .optional(),
+  ExpectedResult: Joi.string().max(1000).allow('').optional(),
+  ActualResult: Joi.string().max(1000).allow('').optional(),
+  Comments: Joi.string().max(2000).allow('').optional(),
+  SuggestionToFix: Joi.string().max(2000).allow('').optional()
+}).min(1);
 const querySchema = Joi.object({
   deviceId: Joi.string().required().messages({
     'any.required': 'Device ID is required'
@@ -115,5 +133,6 @@ module.exports = {
   requestPasswordResetSchema,
   resetPasswordWithTokenSchema,
   bugSchema,
+  bugUpdateSchema,
   querySchema
 };
