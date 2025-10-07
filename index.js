@@ -78,7 +78,10 @@ mongoose
 
 // ✅ Centralized error handler (last middleware)
 // Keeps response shape consistent without changing controller logic
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
   const status = err.status || 500;
   const message = err.message || 'Server error';
   res.status(status).json({ message });
