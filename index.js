@@ -26,7 +26,6 @@ app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
 
-
 // Basic rate limiting for API routes (conservative defaults)
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api/', apiLimiter);
